@@ -8,8 +8,8 @@
 # Test binary
 *.test
 
-# Output of the build process
-/build/
+# Output of the .build process
+/.build/
 bin/
 out/
 

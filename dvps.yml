@@ -1,0 +1,14 @@
+database:
+  dbtype: "mssql"
+  server: sitsqlleoint15.database.windows.net
+  port: 1433
+  name: sitsqdleoint15
+  option: ""
+
+#  dbtype: postgres
+#  server: postgresql-vip.postgres.database.azure.com
+#  port: 5432
+#  name: sitsqdleoint15
+#  option: sslmode=disable
+#  connstring: "postgres://${DB_USERNAME}:${DB_PASSWORD}@postgresql-vip.postgres.database.azure.com:5432/vip?sslmode=disable"
+#  connstring: "server=;user id=${DB_USERNAME};password=${DB_PASSWORD};database=sitsqdleoint15"
