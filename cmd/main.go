@@ -82,11 +82,11 @@ func constructConnString(dbType string) string {
 	// Replace ${DB_USERNAME} and ${DB_PASSWORD} with actual environment variable values
 	switch dbType {
 	case "postgres":
-		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.server"), viper.GetInt("database.port"), viper.GetString("database.name"))
+		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.server"), viper.GetInt("database.port"), viper.GetString("database.name"), viper.GetString("database.option"))
 	case "mssql":
 		return fmt.Sprintf("server=%s,%d;user id=%s;password=%s;database=%s", viper.GetString("database.server"), viper.GetInt("database.port"), os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.name"))
 	default:
-		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.server"), viper.GetInt("database.port"), viper.GetString("database.name"))
+		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.server"), viper.GetInt("database.port"), viper.GetString("database.name"), viper.GetString("database.option"))
 	}
 }
 
@@ -130,32 +130,30 @@ var connectCmd = &cobra.Command{
 var applyScriptCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Apply database scripts",
-	Run:   funcName(),
+	Run:   applyCmd,
 }
 
-func funcName() func(cmd *cobra.Command, args []string) {
-	return func(cmd *cobra.Command, args []string) {
-		// Initialize the configuration
-		initConfig()
+func applyCmd(cmd *cobra.Command, args []string) {
+	// Initialize the configuration
+	initConfig()
 
-		// Get database type and connection string from Viper
-		dbType := viper.GetString("database.dbtype")
-		connString := constructConnString(dbType)
+	// Get database type and connection string from Viper
+	dbType := viper.GetString("database.dbtype")
+	connString := constructConnString(dbType)
 
-		// Connect to the database
-		db, err := openDB(dbType, connString)
-		if err != nil {
-			log.Fatalf("Error opening database: %v", err)
-		}
-		defer db.Close()
-
-		// Test the connection
-		if err := db.Ping(); err != nil {
-			log.Fatalf("Error pinging database: %v", err)
-		}
-		green := ansi.ColorFunc("green")
-		fmt.Printf(green("Connected to %s database successfully!\n"), dbType)
+	// Connect to the database
+	db, err := openDB(dbType, connString)
+	if err != nil {
+		log.Fatalf("Error opening database: %v", err)
 	}
+	defer db.Close()
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Error pinging database: %v", err)
+	}
+	green := ansi.ColorFunc("green")
+	fmt.Printf(green("Connected to %s database successfully!\n"), dbType)
 }
 
 func openDB(dbType, connString string) (*sql.DB, error) {
