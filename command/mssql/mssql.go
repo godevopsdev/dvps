@@ -1,5 +1,0 @@
-package mssql
-
-func main() {
-
-}

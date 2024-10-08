@@ -1,5 +1,5 @@
 database:
-  dbtype: "mssql"
+  dbtype: "sql"
   server: sitsqlleoint15.database.windows.net
   port: 1433
   name: sitsqdleoint15

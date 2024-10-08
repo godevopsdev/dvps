@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/godevopsdev/dvps/command/crypto"
+	dvpssql "github.com/godevopsdev/dvps/command/sql"
 	"log"
 	"os"
 	"strings"
@@ -31,7 +33,7 @@ and manage migrations. Suitable for use in DevOps pipelines like Azure DevOps.`,
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is dvps.yml)")
 
 	// Add flags for database configuration
-	rootCmd.PersistentFlags().String("dbtype", "", "The type of database (e.g., mssql, postgres)")
+	rootCmd.PersistentFlags().String("dbtype", "", "The type of database (e.g., sql, postgres)")
 	rootCmd.PersistentFlags().String("server", "", "The database server")
 	rootCmd.PersistentFlags().Int("port", 0, "The database port")
 	rootCmd.PersistentFlags().String("name", "", "The database name")
@@ -47,7 +49,7 @@ and manage migrations. Suitable for use in DevOps pipelines like Azure DevOps.`,
 	// Add subcommands
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(applyScriptCmd)
-
+	rootCmd.AddCommand(azureKeyCmd)
 	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -73,21 +75,7 @@ func initConfig() {
 	// Environment variable overrides (optional but useful for debugging)
 	fmt.Println(yellow("Current Configuration:"))
 	fmt.Println(yellow("Database Type:"), viper.GetString("database.dbtype"))
-	fmt.Println(yellow("Connection String:"), replacePwd(constructConnString(viper.GetString("database.dbtype"))))
-
-}
-
-// constructConnString replaces placeholders in the connection string with environment variables
-func constructConnString(dbType string) string {
-	// Replace ${DB_USERNAME} and ${DB_PASSWORD} with actual environment variable values
-	switch dbType {
-	case "postgres":
-		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.server"), viper.GetInt("database.port"), viper.GetString("database.name"), viper.GetString("database.option"))
-	case "mssql":
-		return fmt.Sprintf("server=%s,%d;user id=%s;password=%s;database=%s", viper.GetString("database.server"), viper.GetInt("database.port"), os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.name"))
-	default:
-		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), viper.GetString("database.server"), viper.GetInt("database.port"), viper.GetString("database.name"), viper.GetString("database.option"))
-	}
+	fmt.Println(yellow("Connection String:"), replacePwd(dvpssql.ConstructConnString(viper.GetString("database.dbtype"))))
 }
 
 // constructConnString replaces placeholders in the connection string with environment variables
@@ -107,7 +95,7 @@ var connectCmd = &cobra.Command{
 
 		// Get database type and connection string from Viper
 		dbType := viper.GetString("database.dbtype")
-		connString := constructConnString(dbType)
+		connString := dvpssql.ConstructConnString(dbType)
 
 		// Connect to the database
 		db, err := openDB(dbType, connString)
@@ -126,20 +114,34 @@ var connectCmd = &cobra.Command{
 }
 
 // Subcommand: Connect to the database
-
 var applyScriptCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "Apply database scripts",
+	Use:   "applySql [folder]",
+	Short: "Apply database scripts from folder location",
+	Args:  cobra.ExactArgs(1),
 	Run:   applyCmd,
 }
 
+// Subcommand: Connect to the database
+var azureKeyCmd = &cobra.Command{
+	Use:   "azureKey [keyname]",
+	Short: "Generate Key Pair that can be load in Azure Key Vault ",
+	Args:  cobra.ExactArgs(1),
+	Run:   azureKey,
+}
+
+func azureKey(cmd *cobra.Command, args []string) {
+	keyname := args[0]
+	crypto.GenerateRSA2048(keyname)
+}
+
 func applyCmd(cmd *cobra.Command, args []string) {
-	// Initialize the configuration
+
+	folder := args[0]
 	initConfig()
 
 	// Get database type and connection string from Viper
 	dbType := viper.GetString("database.dbtype")
-	connString := constructConnString(dbType)
+	connString := dvpssql.ConstructConnString(dbType)
 
 	// Connect to the database
 	db, err := openDB(dbType, connString)
@@ -152,6 +154,11 @@ func applyCmd(cmd *cobra.Command, args []string) {
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Error pinging database: %v", err)
 	}
+
+	if err := dvpssql.ReadAndExecuteSQLFiles(db, folder); err != nil {
+		log.Fatalf("Error executing file: %v", err)
+	}
+
 	green := ansi.ColorFunc("green")
 	fmt.Printf(green("Connected to %s database successfully!\n"), dbType)
 }
@@ -160,7 +167,7 @@ func openDB(dbType, connString string) (*sql.DB, error) {
 	switch dbType {
 	case "postgres":
 		return sql.Open("postgres", connString)
-	case "mssql":
+	case "sql":
 		return sql.Open("sqlserver", connString)
 	default:
 		return nil, fmt.Errorf("unsupported database type: %s", dbType)
