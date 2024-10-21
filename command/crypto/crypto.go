@@ -4,10 +4,11 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"github.com/godevopsdev/dvps/color"
 	"os"
+	"path/filepath"
 )
 
 // generateRSAKeys generates a new RSA 2048-bit key pair
@@ -29,12 +30,6 @@ func exportPrivateKeyToPEM(privateKey *rsa.PrivateKey) string {
 	return string(privateKeyPEM)
 }
 
-// base64URLEncode encodes bytes in a base64 URL format without padding
-func base64URLEncode(input []byte) string {
-	encoded := base64.RawURLEncoding.EncodeToString(input)
-	return encoded
-}
-
 // exportPublicKeyToPEM exports the public key to standard PEM format
 func exportPublicKeyToPEM(publicKey *rsa.PublicKey) string {
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
@@ -51,32 +46,41 @@ func exportPublicKeyToPEM(publicKey *rsa.PublicKey) string {
 
 // GenerateRSA2048
 func GenerateRSA2048(keyname string) {
+
+	//Validate folder and file
+	// Extract the folder structure
+	folders := filepath.Dir(keyname)
+	if folders != "" {
+		// Create the output directory if it doesn't exist
+		if err := os.MkdirAll(folders, 0755); err != nil {
+			fmt.Println(color.Red("Failed to create output directory:", err))
+			return
+		}
+	}
+
 	// Step 1: Generate RSA 2048-bit key pair
 	privateKey, err := generateRSAKeys()
 	if err != nil {
-		fmt.Println("Error generating RSA key:", err)
+		fmt.Println(color.Red("Error generating RSA key:", err))
 		return
 	}
+
 	// Step 2: Export private key to PEM format
 	privateKeyPEM := exportPrivateKeyToPEM(privateKey)
 	// Step 3: Export public key to standard PEM format
 	publicKeyPEM := exportPublicKeyToPEM(&privateKey.PublicKey)
-	// Create the output directory if it doesn't exist
-	if err := os.MkdirAll("keys", 0755); err != nil {
-		fmt.Println("Failed to create output directory:", err)
-		return
-	}
+
 	// Save the keys to files
 
-	err = os.WriteFile(fmt.Sprintf("keys/%s.pem", keyname), []byte(privateKeyPEM), 0600)
+	err = os.WriteFile(fmt.Sprintf("%s.pem", keyname), []byte(privateKeyPEM), 0600)
 	if err != nil {
-		fmt.Println("Error saving private key file:", err)
+		fmt.Println(color.Red("Error saving private key file:", err))
 		return
 	}
-	err = os.WriteFile(fmt.Sprintf("keys/%s.pub", keyname), []byte(publicKeyPEM), 0600)
+	err = os.WriteFile(fmt.Sprintf("%s.pub", keyname), []byte(publicKeyPEM), 0600)
 	if err != nil {
-		fmt.Println("Error saving public pub key file:", err)
+		fmt.Println(color.Red("Error saving public pub key file:", err))
 		return
 	}
-	fmt.Println("Keys saved successfully!")
+	fmt.Println(color.Green("Keys saved successfully: %s.pub", keyname))
 }

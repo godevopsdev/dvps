@@ -1,9 +1,16 @@
-database:
-  dbtype: "sql"
-  server: sitsqlleoint15.database.windows.net
-  port: 1433
-  name: sitsqdleoint15
-  option: ""
+databases:
+  - dbtype: sql
+    server: sitsqlleoint15.database.windows.net
+    port: 1433
+    name: sitsqdleoint15
+    option: ""
+    folder: testScript2
+  - dbtype: postgres
+    server: postgresql-vip1.postgres.database.azure.com
+    port: 5432
+    name: scissor
+    option: sslmode=disable;application_name=scissor
+    folder: testScript1
 
 #  dbtype: postgres
 #  server: postgresql-vip.postgres.database.azure.com
