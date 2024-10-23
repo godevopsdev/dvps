@@ -58,22 +58,24 @@ var ApplyScriptCmd = &cobra.Command{
 
 func connectCmd(cmd *cobra.Command, args []string) {
 	// Initialize the configuration
-	config := initConfig()
-	for _, cfgDb := range config.Databases {
-		connString := constructConnString(cfgDb)
-		// Connect to the database
-		db, err := openDB(cfgDb.DbType, connString)
-		if err != nil {
-			log.Fatalf("Error opening database: %v", err)
-		}
-		// Test the connection
-		if err := db.Ping(); err != nil {
-			log.Fatalf("Error pinging database: %v", err)
-		}
-		db.Close()
-		fmt.Println(color.Green("Connected to %s database successfully. Server:%s Db:%s", cfgDb.DbType, cfgDb.Server, cfgDb.Name))
-	}
-	printDbCount(config.Databases)
+	//config := initConfig()
+	ConnectMfa()
+	return
+	//for _, cfgDb := range config.Databases {
+	//	connString := constructConnString(cfgDb)
+	//	// Connect to the database
+	//	db, err := openDB(cfgDb.DbType, connString)
+	//	if err != nil {
+	//		log.Fatalf("Error opening database: %v", err)
+	//	}
+	//	// Test the connection
+	//	if err := db.Ping(); err != nil {
+	//		log.Fatalf("Error pinging database: %v", err)
+	//	}
+	//	db.Close()
+	//	fmt.Println(color.Green("Connected to %s database successfully. Server:%s Db:%s", cfgDb.DbType, cfgDb.Server, cfgDb.Name))
+	//}
+	//printDbCount(config.Databases)
 }
 
 func applyScriptCmd(cmd *cobra.Command, args []string) {
@@ -83,14 +85,14 @@ func applyScriptCmd(cmd *cobra.Command, args []string) {
 		// Connect to the database
 		db, err := openDB(cfgDb.DbType, connString)
 		if err != nil {
-			log.Fatalf("Error opening database: %v", err)
+			log.Fatalln(color.Red("Error opening database: %v", err))
 		}
 		// Test the connection
 		if err := db.Ping(); err != nil {
-			log.Fatalf("Error pinging database: %v", err)
+			log.Fatalln(color.Red("Error pinging database: %v", err))
 		}
 		if err := readAndExecuteSQLFiles(db, cfgDb.Folder); err != nil {
-			log.Fatalf("Error executing file: %v", err)
+			log.Fatalln(color.Red("Error executing file: %v", err))
 		}
 		db.Close()
 		fmt.Println(color.Green("Scripts run to %s database successfully. Server:%s Db:%s", cfgDb.DbType, cfgDb.Server, cfgDb.Name))
@@ -199,9 +201,9 @@ func readAndExecuteSQLFiles(db *sql.DB, folder string) error {
 
 	var sqlFiles []string
 
-	// Filter only .sql files and collect their paths
+	// Filter only .sql files and collect their paths and exclude _ prefix
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") && !strings.HasPrefix(file.Name(), "_") {
 			sqlFiles = append(sqlFiles, filepath.Join(folder, file.Name()))
 		}
 	}
@@ -224,7 +226,7 @@ func readAndExecuteSQLFiles(db *sql.DB, folder string) error {
 			return fmt.Errorf("failed to execute SQL from file %s: %v", sqlFile, execErr)
 		}
 
-		fmt.Printf("Successfully executed SQL from file: %s\n", sqlFile)
+		fmt.Println(color.Green("Successfully executed SQL from file: %s", sqlFile))
 	}
 
 	return nil
