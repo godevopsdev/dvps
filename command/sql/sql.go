@@ -184,7 +184,7 @@ func constructConnString(db Database) string {
 	switch db.DbType {
 	case "postgres":
 		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), db.Server, db.Port, db.Name, db.Option)
-	case "sql":
+	case "mssql":
 		return fmt.Sprintf("server=%s,%d;user id=%s;password=%s;database=%s", db.Server, db.Port, os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), db.Name)
 	default:
 		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s", os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD"), db.Server, db.Port, db.Name, db.Option)
