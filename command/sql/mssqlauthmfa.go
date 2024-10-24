@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	_ "github.com/denisenkom/go-mssqldb"
-	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/denisenkom/go-mssqldb"
 	"log"
 	"time"
 )
@@ -17,7 +16,10 @@ func ConnectMfa() {
 	server := "sitsqlleoint16.database.windows.net"
 	database := "sitsqdleoint16"
 
-	cred, err := azidentity.NewInteractiveBrowserCredential(nil)
+	ibc := azidentity.InteractiveBrowserCredentialOptions{
+		TenantID: "8287db1c-e074-412b-9c78-e1d70e3cc068",
+	}
+	cred, err := azidentity.NewInteractiveBrowserCredential(&ibc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,18 +27,12 @@ func ConnectMfa() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	//token, err := cred.GetToken(ctx, policy.TokenRequestOptions{
-	//	Scopes: []string{"https://database.windows.net/.default"},
-	//})
 	tokenProvider := func() (string, error) {
 		token, err := cred.GetToken(context.TODO(), policy.TokenRequestOptions{
 			Scopes: []string{"https://database.windows.net//.default"},
 		})
 		return token.Token, err
 	}
-	//if err != nil {
-	//	log.Fatalf("Failed to acquire token: %v", err)
-	//}
 
 	// Connection string for Azure SQL with Access Token
 	connString := fmt.Sprintf("sqlserver://%s?database=%s&fedauth=ActiveDirectoryInteractive", server, database)
@@ -61,5 +57,9 @@ func ConnectMfa() {
 	}
 	fmt.Printf("somenumber:%d\n", somenumber)
 	fmt.Printf("somechars:%s\n", somechars)
-	_ = db.Close()
+	err = db.Close()
+	if err != nil {
+		log.Fatal("error closed:", err.Error())
+	}
+
 }
